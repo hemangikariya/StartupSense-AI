@@ -93,6 +93,8 @@ class ChatHistory(Base):
     message = Column(Text, nullable=False)
     response = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    chat_id = Column(String(50), nullable=True, index=True)
+    chat_title = Column(String(255), nullable=True)
 
     # Relationships
     idea = relationship("StartupIdea", back_populates="chat_history")

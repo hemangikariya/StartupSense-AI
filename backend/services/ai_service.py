@@ -24,7 +24,7 @@ def call_gemini_json(prompt: str, system_instruction: str = None) -> Dict[str, A
         return {}
     
     try:
-        model_name = "gemini-1.5-flash"
+        model_name = "gemini-2.5-flash"
         
         # Configure model with JSON schema enforcement
         config = {
@@ -337,10 +337,29 @@ def forecast_market_growth(title: str, description: str) -> Dict[str, Any]:
         }
     return res
 
-def mentor_chat(idea_title: str, idea_desc: str, chat_history: List[Dict[str, str]], user_message: str) -> str:
+def mentor_chat(
+    idea_title: str,
+    idea_desc: str,
+    chat_history: List[Dict[str, str]],
+    user_message: str,
+    analysis_summary: str = None,
+    swot: Any = None,
+    competitors: Any = None,
+    revenue_model: Any = None
+) -> str:
     """
     Simulates a conversation with an AI Startup Mentor specializing in the user's idea.
     """
+    extra_context = ""
+    if analysis_summary:
+        extra_context += f"\nAnalysis Summary: {analysis_summary}"
+    if swot:
+        extra_context += f"\nSWOT Analysis: {json.dumps(swot)}"
+    if competitors:
+        extra_context += f"\nCompetitors Analysis: {json.dumps(competitors)}"
+    if revenue_model:
+        extra_context += f"\nRevenue Model: {json.dumps(revenue_model)}"
+
     if not api_key_configured:
         return (
             f"As your AI Startup Mentor, I really like your idea '{idea_title}'. "
@@ -349,7 +368,7 @@ def mentor_chat(idea_title: str, idea_desc: str, chat_history: List[Dict[str, st
         )
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         
         # Build prompt history
         history_str = ""
@@ -360,6 +379,7 @@ def mentor_chat(idea_title: str, idea_desc: str, chat_history: List[Dict[str, st
             f"You are the StartupSense AI Mentor. You have deep knowledge of venture building, "
             f"software architectures, SaaS business models, and fundraising. "
             f"The user's startup is called '{idea_title}' and is described as: '{idea_desc}'.\n"
+            f"Additional Context:{extra_context}\n"
             f"Context History:\n{history_str}\n"
             f"Answer the user's latest question concisely and with actionable startup advice.\n"
             f"User: {user_message}"
