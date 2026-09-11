@@ -7,11 +7,17 @@ from backend.services import ai_service, ml_service, nlp_service, forecast_servi
 
 router = APIRouter(prefix="/analysis", tags=["Startup Analysis"])
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+executor = ThreadPoolExecutor(max_workers=6)
+
 @router.post("/validate/{idea_id}", status_code=status.HTTP_201_CREATED)
-def validate_idea(idea_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
+async def validate_idea(idea_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
     """
     Triggers the complete AI + ML + NLP validation pipeline for a startup idea.
-    Stores results in the PostgreSQL 'analyses' table.
+    Uses concurrent execution for independent LLM, ML, and NLP tasks to optimize latency.
+    Stores results in the PostgreSQL/SQLite 'analyses' table.
     """
     # 1. Fetch idea and verify ownership
     idea = db.query(models.StartupIdea).filter(models.StartupIdea.id == idea_id).first()
@@ -25,12 +31,53 @@ def validate_idea(idea_id: int, db: Session = Depends(get_db), current_user: mod
     if existing_analysis:
         return {"message": "Idea already analyzed", "analysis_id": existing_analysis.id}
 
-    # 2. Run NLP classification & keyword extraction locally
-    nlp_keywords = nlp_service.extract_keywords_and_concepts(idea.description)
+    loop = asyncio.get_event_loop()
+
+    # Step 1: Run Stage 1 tasks concurrently:
+    # - Local NLP keyword extraction
+    # - Core AI analysis (Gemini + live DDG search)
+    # - Strategic SWOT analysis (Gemini)
+    # - Live Competitor discovery & analysis (DDG search + Gemini)
+    # - Business Plan generation (Gemini)
+    # - Pitch Deck generation (Gemini)
     
-    # 3. Call AI Service (Gemini) for high-level core analysis
-    ai_report = ai_service.generate_startup_analysis(idea.title, idea.description, idea.industry)
-    
+    async def safe_task(func, *args):
+        try:
+            return await loop.run_in_executor(executor, func, *args)
+        except Exception as e:
+            print(f"Concurrent task error in {func.__name__}: {e}")
+            return None
+
+    (
+        nlp_keywords,
+        ai_report,
+        swot,
+        competitors,
+        biz_plan,
+        pitch_deck
+    ) = await asyncio.gather(
+        safe_task(nlp_service.extract_keywords_and_concepts, idea.description),
+        safe_task(ai_service.generate_startup_analysis, idea.title, idea.description, idea.industry),
+        safe_task(ai_service.generate_swot, idea.title, idea.description),
+        safe_task(ai_service.generate_competitor_analysis, idea.title, idea.description, idea.industry),
+        safe_task(ai_service.generate_business_plan, idea.title, idea.description, idea.industry),
+        safe_task(ai_service.generate_pitch_deck, idea.title, idea.description)
+    )
+
+    # Fallback guarantees if any individual task errored
+    if not nlp_keywords:
+        nlp_keywords = nlp_service.extract_keywords_and_concepts(idea.description)
+    if not ai_report:
+        ai_report = ai_service.generate_startup_analysis(idea.title, idea.description, idea.industry)
+    if not swot:
+        swot = ai_service.generate_swot(idea.title, idea.description)
+    if not competitors:
+        competitors = ai_service.generate_competitor_analysis(idea.title, idea.description, idea.industry)
+    if not biz_plan:
+        biz_plan = ai_service.generate_business_plan(idea.title, idea.description, idea.industry)
+    if not pitch_deck:
+        pitch_deck = ai_service.generate_pitch_deck(idea.title, idea.description)
+
     # Update industry classification if generated
     classification = ai_report.get("classification", {})
     idea.industry = classification.get("industry", idea.industry)
@@ -39,18 +86,19 @@ def validate_idea(idea_id: int, db: Session = Depends(get_db), current_user: mod
     idea.business_model = classification.get("business_model", idea.business_model)
     db.commit()
 
-    # 4. Run SWOT and competitor generation
-    swot = ai_service.generate_swot(idea.title, idea.description)
-    competitors = ai_service.generate_competitor_analysis(idea.title, idea.description, idea.industry)
-    
-    # Sentiment analysis on each competitor
-    for comp in competitors:
-        sentiment_metrics = nlp_service.analyze_competitor_sentiment(comp["name"])
-        comp["sentiment"] = sentiment_metrics["sentiment"]
-        comp["praises"] = sentiment_metrics["praises"]
-        comp["complaints"] = sentiment_metrics["complaints"]
+    # Step 2: Parallelize Competitor Sentiment Analysis
+    async def get_sentiment(comp):
+        sent = await loop.run_in_executor(executor, nlp_service.analyze_competitor_sentiment, comp["name"])
+        comp["sentiment"] = sent.get("sentiment", {})
+        comp["praises"] = sent.get("praises", [])
+        comp["complaints"] = sent.get("complaints", [])
+        return comp
 
-    # 5. Run ML Success & Risk Predictions
+    if competitors:
+        competitors = await asyncio.gather(*[get_sentiment(c) for c in competitors])
+
+    # Step 3: Run ML Predictions & Forecasting
+    # ML Success prediction
     success_pred = ml_service.predict_startup_success(
         description_len=len(idea.description),
         industry=idea.industry or "General",
@@ -58,10 +106,11 @@ def validate_idea(idea_id: int, db: Session = Depends(get_db), current_user: mod
         team_size=3
     )
     
+    # ML Risk & Investor Readiness
     risk_pred = ml_service.predict_startup_risks(idea.title, idea.description)
     investor_pred = ml_service.predict_investor_readiness(idea.title, idea.description, success_pred["success_probability"])
-    
-    # 6. Run DNA Engine Calculations
+
+    # DNA Engine Calculations
     dna = {
         "innovation_score": int(80 + (len(idea.title) % 15)),
         "scalability_score": int(75 + (len(idea.description) % 20)),
@@ -71,31 +120,26 @@ def validate_idea(idea_id: int, db: Session = Depends(get_db), current_user: mod
         "overall_dna_score": int((80 + 75 + success_pred["success_probability"] + (100 - risk_pred["execution_risk"])) / 4)
     }
 
-    # 7. Run NLP Similarity compared to other platform ideas
+    # NLP Similarity calculation vs existing database records
     other_ideas = db.query(models.StartupIdea).filter(models.StartupIdea.id != idea_id).all()
     other_ideas_dicts = [{"title": oi.title, "description": oi.description} for oi in other_ideas]
     similarity = nlp_service.calculate_idea_similarity(idea.description, other_ideas_dicts)
 
-    # 8. Run Business Plan & Pitch Deck outlines
-    biz_plan = ai_service.generate_business_plan(idea.title, idea.description, idea.industry)
-    pitch_deck = ai_service.generate_pitch_deck(idea.title, idea.description)
-
-    # 9. Run Forecasting & Revenue projections (Prophet)
+    # Forecasting & Revenue projections
     revenue_forecast = forecast_service.forecast_startup_revenue(
         base_revenue=5000.0,
         growth_rate=0.10,
         months_to_forecast=12
     )
-    
     market_growth = forecast_service.forecast_industry_growth(idea.industry or "General")
 
-    # 10. Generate Technology Stack & Branding details
+    # Technology Stack & Branding metadata
     tech_stack = {
         "frontend": "React 19, TypeScript, Tailwind CSS, Recharts",
         "backend": "FastAPI (Python), Uvicorn, SQLAlchemy",
-        "database": "PostgreSQL, Redis Cache",
+        "database": "PostgreSQL / SQLite, Redis Cache",
         "ai_ml": "Gemini API, Scikit-Learn, Prophet",
-        "hosting": "Docker, AWS ECS, Vercel"
+        "hosting": "AWS ECS / Cloud Server, Vercel"
     }
     
     branding = {
@@ -104,7 +148,7 @@ def validate_idea(idea_id: int, db: Session = Depends(get_db), current_user: mod
         "logo_prompt": f"Modern minimalist vector logo for {idea.title}, showing technology, growth, and intelligence, dark slate blue background, clean geometry."
     }
 
-    # Save to Database
+    # Save complete analysis to Database
     db_analysis = models.Analysis(
         idea_id=idea_id,
         summary=ai_report.get("summary", ""),

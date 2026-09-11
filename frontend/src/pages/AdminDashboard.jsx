@@ -51,28 +51,28 @@ export const AdminDashboard = () => {
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Users</span>
-                  <p className="text-2xl font-extrabold mt-1">{stats.users_count}</p>
+                  <p className="text-2xl font-extrabold mt-1">{stats.total_users ?? 0}</p>
                 </div>
                 <Users className="h-8 w-8 text-rose-500/20" />
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Ideas</span>
-                  <p className="text-2xl font-extrabold mt-1">{stats.ideas_count}</p>
+                  <p className="text-2xl font-extrabold mt-1">{stats.total_ideas ?? 0}</p>
                 </div>
                 <FileText className="h-8 w-8 text-indigo-500/20" />
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Tickets</span>
-                  <p className="text-2xl font-extrabold mt-1">{stats.tickets_count}</p>
+                  <p className="text-2xl font-extrabold mt-1">{stats.open_tickets ?? 0}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-emerald-500/20" />
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">System Logs</span>
-                  <p className="text-2xl font-extrabold mt-1">{stats.logs_count}</p>
+                  <p className="text-2xl font-extrabold mt-1">{stats.total_logs ?? 0}</p>
                 </div>
                 <Shield className="h-8 w-8 text-amber-500/20" />
               </div>

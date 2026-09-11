@@ -1,0 +1,154 @@
+[
+  {
+    "test": "1. User Registration",
+    "expected": "HTTP 201 Created",
+    "actual": "HTTP 201",
+    "duration": "2.816s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "2. User Login & Token Generation",
+    "expected": "HTTP 200 + JWT Token",
+    "actual": "HTTP 200",
+    "duration": "2.564s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "3. User Profile Verification (/me)",
+    "expected": "HTTP 200 + Current User Profile",
+    "actual": "HTTP 200",
+    "duration": "2.032s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "4. Startup Idea Creation",
+    "expected": "HTTP 201 + Idea ID",
+    "actual": "HTTP 201 (ID: 6)",
+    "duration": "2.302s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "5. List User Ideas / Context Switcher",
+    "expected": "HTTP 200 + Non-empty List",
+    "actual": "HTTP 200 (1 ideas)",
+    "duration": "2.077s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "6. End-to-End AI Validation Pipeline",
+    "expected": "HTTP 201 Validation Complete",
+    "actual": "HTTP 201",
+    "duration": "22.295s",
+    "status": "PASS",
+    "notes": "Latency: 22.29s (NLP + Live Search + Gemini + ML + Prophet)"
+  },
+  {
+    "test": "7. Executive Analysis Aggregator",
+    "expected": "HTTP 200 with full SWOT/Competitors/ML/DNA/Risk data",
+    "actual": "HTTP 200",
+    "duration": "2.057s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "8. ML Success Prediction",
+    "expected": "HTTP 200 + JSON Metric Payload",
+    "actual": "HTTP 200",
+    "duration": "2.063s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "9. Investor Readiness Score",
+    "expected": "HTTP 200 + JSON Metric Payload",
+    "actual": "HTTP 200",
+    "duration": "2.061s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "10. ML Risk Dimension Analysis",
+    "expected": "HTTP 200 + JSON Metric Payload",
+    "actual": "HTTP 200",
+    "duration": "2.046s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "11. Startup DNA Composite Scoring",
+    "expected": "HTTP 200 + JSON Metric Payload",
+    "actual": "HTTP 200",
+    "duration": "2.067s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "12. Prophet Revenue Forecast",
+    "expected": "HTTP 200 + JSON Metric Payload",
+    "actual": "HTTP 200",
+    "duration": "2.076s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "13. Market Growth Projections",
+    "expected": "HTTP 200 + JSON Metric Payload",
+    "actual": "HTTP 200",
+    "duration": "2.068s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "14. AI Mentor Chat (Strategic Question)",
+    "expected": "HTTP 200 + Context-Aware Advice",
+    "actual": "HTTP 200",
+    "duration": "8.495s",
+    "status": "PASS",
+    "notes": "Answer snippet: Indian societies should choose EcoClean IoT for its **hyper-..."
+  },
+  {
+    "test": "15. AI Mentor Chat (Vague / Short Question)",
+    "expected": "HTTP 200 + Grounded Guidance",
+    "actual": "HTTP 200",
+    "duration": "13.388s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "16. Chat History & Session Export",
+    "expected": "HTTP 200 + Formatted Transcript",
+    "actual": "HTTP 200",
+    "duration": "2.036s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "17. PDF Report Generation & Stream Download",
+    "expected": "HTTP 201 + Valid Binary PDF",
+    "actual": "HTTP 200 (8678 bytes)",
+    "duration": "2.514s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "18. Support Ticket Submission & Retrieval",
+    "expected": "HTTP 201 + Ticket in user list",
+    "actual": "HTTP 200",
+    "duration": "2.284s",
+    "status": "PASS",
+    "notes": ""
+  },
+  {
+    "test": "19. User Data Isolation Security Check",
+    "expected": "HTTP 403 Forbidden on Unauthorized Resource",
+    "actual": "HTTP 403",
+    "duration": "7.390s",
+    "status": "PASS",
+    "notes": ""
+  }
+]

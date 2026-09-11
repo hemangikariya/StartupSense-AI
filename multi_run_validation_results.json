@@ -1,0 +1,90 @@
+[
+  {
+    "run": 1,
+    "idea": "MediChain Ledger",
+    "industry": "Healthcare",
+    "latency_sec": 13.331,
+    "http_status": 201,
+    "gemini_429": false,
+    "db_persisted": true,
+    "analysis_id": 11,
+    "summary_snippet": "StartupSense AI Validation Report for MediChain Ledger. This platform aims to address major operational bottlenecks and ",
+    "sections": {
+      "swot": true,
+      "competitors": true,
+      "sentiments": true,
+      "business_plan": true,
+      "pitch_deck": true,
+      "dna_score": true,
+      "ml_predictions": true,
+      "revenue_forecast": true
+    },
+    "passed": true
+  },
+  {
+    "run": 2,
+    "idea": "FinSight AI",
+    "industry": "Fintech",
+    "latency_sec": 16.358,
+    "http_status": 201,
+    "gemini_429": false,
+    "db_persisted": true,
+    "analysis_id": 12,
+    "summary_snippet": "StartupSense AI Validation Report for FinSight AI. This platform aims to address major operational bottlenecks and digit",
+    "sections": {
+      "swot": true,
+      "competitors": true,
+      "sentiments": true,
+      "business_plan": true,
+      "pitch_deck": true,
+      "dna_score": true,
+      "ml_predictions": true,
+      "revenue_forecast": true
+    },
+    "passed": true
+  },
+  {
+    "run": 3,
+    "idea": "SolarGrid Optimize",
+    "industry": "CleanTech",
+    "latency_sec": 9.407,
+    "http_status": 201,
+    "gemini_429": false,
+    "db_persisted": true,
+    "analysis_id": 13,
+    "summary_snippet": "StartupSense AI Validation Report for SolarGrid Optimize. This platform aims to address major operational bottlenecks an",
+    "sections": {
+      "swot": true,
+      "competitors": true,
+      "sentiments": true,
+      "business_plan": true,
+      "pitch_deck": true,
+      "dna_score": true,
+      "ml_predictions": true,
+      "revenue_forecast": true
+    },
+    "passed": true
+  },
+  {
+    "run": 4,
+    "idea": "EduMentor XR",
+    "industry": "EdTech",
+    "latency_sec": 8.551,
+    "http_status": 201,
+    "gemini_429": false,
+    "db_persisted": true,
+    "analysis_id": 14,
+    "summary_snippet": "StartupSense AI Validation Report for EduMentor XR. This platform aims to address major operational bottlenecks and digi",
+    "sections": {
+      "swot": true,
+      "competitors": true,
+      "sentiments": true,
+      "business_plan": true,
+      "pitch_deck": true,
+      "dna_score": true,
+      "ml_predictions": true,
+      "revenue_forecast": true
+    },
+    "passed": true
+  }
+]
