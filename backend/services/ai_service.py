@@ -142,54 +142,102 @@ def generate_swot(title: str, description: str) -> Dict[str, Any]:
         }
     return res
 
+from backend.services.search_service import search_competitors_and_trends, multi_angle_competitor_search
+
 def generate_competitor_analysis(title: str, description: str, industry: str = None) -> List[Dict[str, Any]]:
-    # Search DDG
-    search_context = search_competitors_and_trends(f"{title} competitors", max_results=3)
-    search_str = "\n".join([f"- {s['title']}: {s['snippet']}" for s in search_context])
+    """
+    Discovers and analyzes REAL verified competitors from live web search.
+    Implements strict anti-hallucination rules: extracts only genuine companies found
+    in search results or well-documented verified market players.
+    """
+    # 1. Fetch multi-angle search context
+    search_context = multi_angle_competitor_search(title, description, industry)
+    
+    # Format search evidence for Gemini
+    search_evidence = []
+    for s in search_context:
+        search_evidence.append(
+            f"- Title: {s.get('title')}\n  Domain: {s.get('domain')}\n  URL: {s.get('link')}\n  Snippet: {s.get('snippet')}"
+        )
+    search_str = "\n".join(search_evidence) if search_evidence else "No search context available."
 
-    system_instruction = "You are a competitive intelligence analyst. Return your output in a JSON array of competitor objects."
+    system_instruction = (
+        "You are an elite competitive intelligence researcher. "
+        "CRITICAL ANTI-HALLUCINATION INSTRUCTION: You must ONLY identify genuine, real-world companies or products. "
+        "Extract verified companies directly supported by the search evidence or well-known verifiable industry software. "
+        "NEVER fabricate company names, fake websites, or hallucinated competitors. "
+        "If no clear competitors are found in the market, return an empty JSON array []."
+    )
+
     prompt = f"""
-    Analyze the competitive landscape for:
-    Title: {title}
+    Analyze the competitive landscape for this startup:
+    Startup Title: {title}
     Description: {description}
-    Industry: {industry}
+    Industry: {industry or 'General'}
 
-    Here is real-time search context of potential competitors:
+    Real-Time Web Search Context & Sources:
     {search_str}
 
-    Return a JSON array of 3 competitor objects. Each object must have:
-    - "name": Competitor name.
-    - "similarity_score": Similarity percentage (integer, e.g. 75).
-    - "strengths": Array of 2 strengths.
-    - "weaknesses": Array of 2 weaknesses.
-    - "market_share": Estimated market share text (e.g. "Dominant", "Niche", "Emerging").
+    Return a JSON array of up to 4 real competitor objects.
+    Each object MUST have:
+    - "name": Exact real company/product name (e.g. "Linear", "Stripe", "Epic Systems", "Notion").
+    - "domain": Real website domain if found or known (e.g. "linear.app", "stripe.com") or empty string "".
+    - "competitor_type": One of "Direct", "Indirect", "Adjacent".
+    - "similarity_score": Integer 0-100 indicating product/problem overlap.
+    - "is_verified": Boolean true if found in live search/known real company, false otherwise.
+    - "source_url": Reference link from search context if available, or empty string.
+    - "relevance_reason": Concise 1-sentence explanation of why it competes with {title}.
+    - "strengths": Array of 2 core strengths/moats.
+    - "weaknesses": Array of 2 known vulnerabilities/weaknesses.
+    - "market_share": String label e.g. "Dominant", "Market Leader", "Challenger", "Niche", or "Emerging".
+
+    If you cannot find real, verified competitors, return [].
     """
+
     res = call_gemini_json(prompt, system_instruction)
-    if not isinstance(res, list) or not res:
-        res = [
-            {
-                "name": "Stripe Atlas",
-                "similarity_score": 65,
-                "strengths": ["Huge brand reputation", "Seamless incorporation pipeline"],
-                "weaknesses": ["No AI validation metrics", "High price point for global users"],
-                "market_share": "Dominant"
-            },
-            {
-                "name": "Crunchbase Pro",
-                "similarity_score": 45,
-                "strengths": ["Deep database of funding", "Excellent investor contacts"],
-                "weaknesses": ["No automated roadmap/business plan builder", "Complex UI for beginners"],
-                "market_share": "Market Leader"
-            },
-            {
-                "name": "IdeaBuddy",
-                "similarity_score": 80,
-                "strengths": ["Interactive step-by-step wizard", "Nice financial forecasting"],
-                "weaknesses": ["No real-time competitor search", "Lacks NLP similarity algorithms"],
-                "market_share": "Emerging"
-            }
-        ]
-    return res
+
+    # Validate output structure and ensure real data
+    verified_competitors = []
+    if isinstance(res, list):
+        for item in res:
+            if isinstance(item, dict) and item.get("name"):
+                name = str(item.get("name", "")).strip()
+                # Skip clearly placeholder or blank names
+                if name.lower() in ["none", "n/a", "competitor 1", "industry competitor 1"]:
+                    continue
+                verified_competitors.append({
+                    "name": name,
+                    "domain": item.get("domain", "") or "",
+                    "competitor_type": item.get("competitor_type", "Direct"),
+                    "similarity_score": int(item.get("similarity_score", 70)),
+                    "is_verified": bool(item.get("is_verified", True)),
+                    "source_url": item.get("source_url", "") or "",
+                    "relevance_reason": item.get("relevance_reason", f"Competes in the {industry or 'software'} market."),
+                    "strengths": item.get("strengths", ["Established brand presence", "Core workflow integrations"]),
+                    "weaknesses": item.get("weaknesses", ["Higher enterprise pricing", "Complex legacy configuration"]),
+                    "market_share": item.get("market_share", "Established Player")
+                })
+
+    # If search was available and had results, but Gemini was offline, construct verified candidates from search domains
+    if not verified_competitors and search_context:
+        for s in search_context[:3]:
+            dom = s.get("domain", "")
+            title_text = s.get("title", "").split(" - ")[0].split(" | ")[0].strip()
+            if dom and len(title_text) > 2 and "duckduckgo" not in dom:
+                verified_competitors.append({
+                    "name": title_text,
+                    "domain": dom,
+                    "competitor_type": "Direct",
+                    "similarity_score": 65,
+                    "is_verified": True,
+                    "source_url": s.get("link", ""),
+                    "relevance_reason": s.get("snippet", "")[:120],
+                    "strengths": ["Active web presence", "Domain search indexing"],
+                    "weaknesses": ["Broader generalist focus", "Lacks specialized startup workflows"],
+                    "market_share": "Challenger"
+                })
+
+    return verified_competitors
 
 def generate_business_plan(title: str, description: str, industry: str = None) -> Dict[str, Any]:
     system_instruction = "You are a professional business planner. Return your plan in JSON."

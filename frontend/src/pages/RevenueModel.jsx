@@ -1,11 +1,13 @@
 import React from 'react';
 import { useActiveAnalysis } from '../hooks/useActiveAnalysis';
+import { useCurrency } from '../context/CurrencyContext';
 import { EmptyState } from '../components/EmptyState';
 import { DollarSign, ShieldCheck, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const RevenueModel = () => {
   const { analysis, loading, error, activeIdeaId, reload } = useActiveAnalysis();
+  const { formatCurrency, selectedCurrency } = useCurrency();
   const navigate = useNavigate();
 
   if (loading) {
@@ -19,9 +21,24 @@ export const RevenueModel = () => {
   }
 
   const pricingTiers = [
-    { name: 'Starter Sandbox', price: '$29/mo', desc: 'For early validation testing.', features: ['1 Project limit', 'Basic AI validations', '10 Competitor matches'] },
-    { name: 'Growth Studio', price: '$89/mo', desc: 'For scaling startup teams.', features: ['5 Projects limit', 'Advanced ML predictions', 'Prophet forecasts access', 'PDF reports download'] },
-    { name: 'Enterprise Studio', price: '$299/mo', desc: 'For incubators & scaleup funds.', features: ['Unlimited validation models', 'Custom API access', 'Priority AI Mentor queries', 'Admin log exports'] }
+    { 
+      name: 'Starter Sandbox', 
+      basePriceUSD: 29, 
+      desc: 'For early validation testing.', 
+      features: ['1 Project limit', 'Basic AI validations', '10 Competitor matches'] 
+    },
+    { 
+      name: 'Growth Studio', 
+      basePriceUSD: 89, 
+      desc: 'For scaling startup teams.', 
+      features: ['5 Projects limit', 'Advanced ML predictions', 'Prophet forecasts access', 'PDF reports download'] 
+    },
+    { 
+      name: 'Enterprise Studio', 
+      basePriceUSD: 299, 
+      desc: 'For incubators & scaleup funds.', 
+      features: ['Unlimited validation models', 'Custom API access', 'Priority AI Mentor queries', 'Admin log exports'] 
+    }
   ];
 
   return (
@@ -32,7 +49,7 @@ export const RevenueModel = () => {
           Revenue Model <DollarSign className="h-7 w-7 text-sky-500" />
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Monetization strategy and recommended subscription package matrices.
+          Monetization strategy and recommended subscription package matrices displayed in {selectedCurrency}.
         </p>
       </div>
 
@@ -45,7 +62,9 @@ export const RevenueModel = () => {
           >
             <div className="space-y-4">
               <h3 className="font-bold text-lg">{tier.name}</h3>
-              <p className="text-3xl font-extrabold text-sky-500">{tier.price}</p>
+              <p className="text-3xl font-extrabold text-sky-500">
+                {formatCurrency(tier.basePriceUSD, { compact: false, decimals: 0 })}/mo
+              </p>
               <p className="text-xs text-slate-400 leading-relaxed">{tier.desc}</p>
               <ul className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                 {tier.features.map((f, i) => (

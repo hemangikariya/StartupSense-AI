@@ -1,5 +1,6 @@
 import React from 'react';
 import { useActiveAnalysis } from '../hooks/useActiveAnalysis';
+import { useCurrency } from '../context/CurrencyContext';
 import { EmptyState } from '../components/EmptyState';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -18,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { analysis, loading, error, activeIdeaId, reload } = useActiveAnalysis();
+  const { formatCurrency, convert, selectedCurrency, getSymbol } = useCurrency();
   const navigate = useNavigate();
 
   if (loading) {
@@ -60,9 +62,9 @@ export const Dashboard = () => {
       path: '/investor-readiness'
     },
     {
-      title: 'Overall DNA Score',
+      title: 'Startup DNA',
       value: `${analysis.dna_analysis.overall_dna_score}%`,
-      subtitle: 'Scalability index: High',
+      subtitle: 'Composite score',
       icon: Sparkles,
       color: 'text-indigo-500 bg-indigo-500/10',
       path: '/startup-dna'
@@ -70,27 +72,36 @@ export const Dashboard = () => {
     {
       title: 'Execution Risk',
       value: `${analysis.risk_analysis.execution_risk}%`,
-      subtitle: 'Technical Risk: ' + analysis.risk_analysis.technical_risk + '%',
+      subtitle: 'Risk index',
       icon: ShieldAlert,
       color: 'text-rose-500 bg-rose-500/10',
       path: '/risk-analysis'
     }
   ];
 
-  // Market opportunity data formatting
-  const marketForecastData = Object.entries(analysis.market_opportunity.market_growth).map(([year, growth]) => ({
+  const marketForecastData = Object.entries(analysis.market_opportunity.market_growth).map(([year, rate]) => ({
     year,
-    growth
+    growth: rate
+  }));
+
+  // Convert revenue forecast to active currency for accurate chart plots
+  const convertedRevenueForecast = (analysis.revenue_model?.revenue_forecast || []).map((item) => ({
+    ...item,
+    convertedRevenue: convert(item.revenue),
   }));
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      {/* Title */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Executive Dashboard</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          High-level metrics and strategy reports for your active concept validation.
-        </p>
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
+      {/* Welcome Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-transparent p-6 rounded-2xl border border-sky-500/10">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Executive Intelligence: {analysis.summary?.split('.')[0] || 'Startup Overview'}
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Real-time validation telemetry and predictive modeling aggregated for {analysis.summary?.split(' ')[0] || 'your venture'}.
+          </p>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}
@@ -101,51 +112,50 @@ export const Dashboard = () => {
             <div
               key={kpi.title}
               onClick={() => navigate(kpi.path)}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 cursor-pointer hover:border-sky-500 transition shadow-sm flex items-center justify-between"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between"
             >
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{kpi.title}</p>
-                <p className="text-2xl font-extrabold">{kpi.value}</p>
-                <p className="text-xs text-slate-400 mt-1">{kpi.subtitle}</p>
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{kpi.title}</span>
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${kpi.color}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
               </div>
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${kpi.color}`}>
-                <Icon className="h-6 w-6" />
+              <div>
+                <p className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{kpi.value}</p>
+                <p className="text-xs font-semibold text-slate-400 mt-1 capitalize">{kpi.subtitle}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Summary Section */}
+      {/* Strategic Summary & AI Mentor Promo */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Core Summary card */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b pb-4">
-            <h2 className="text-lg font-bold">Executive Summary</h2>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-500">
-              {analysis.keywords.business_concepts[0] || 'SaaS'}
-            </span>
-          </div>
-          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            {analysis.summary}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-sky-500" /> Executive Problem & Solution Summary
+          </h2>
+          <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Core Problem</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3">{analysis.problem_statement}</p>
+              <p className="font-semibold text-xs text-slate-400 uppercase tracking-wider mb-1">Target Audience</p>
+              <p>{analysis.target_audience}</p>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Core Solution</p>
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3">{analysis.solution}</p>
+              <p className="font-semibold text-xs text-slate-400 uppercase tracking-wider mb-1">Core Problem</p>
+              <p>{analysis.problem_statement}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-xs text-slate-400 uppercase tracking-wider mb-1">Value Proposition Solution</p>
+              <p>{analysis.solution}</p>
             </div>
           </div>
         </div>
 
-        {/* AI Quick Actions Card */}
-        <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        {/* AI Mentor Callout */}
+        <div className="bg-gradient-to-br from-slate-900 to-sky-950 text-white rounded-2xl p-6 shadow-sm flex flex-col justify-between border border-slate-800">
           <div className="space-y-4">
-            <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center">
-              <Bot className="h-5 w-5 text-sky-400" />
+            <div className="h-10 w-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center">
+              <Bot className="h-6 w-6" />
             </div>
             <h2 className="text-xl font-bold">Need Strategic Advice?</h2>
             <p className="text-xs text-slate-300 leading-relaxed">
@@ -166,18 +176,29 @@ export const Dashboard = () => {
         {/* Revenue Projection Line chart */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-bold mb-6 flex items-center justify-between">
-            <span>Monthly Revenue Projections (12m)</span>
+            <span>Monthly Revenue Projections ({selectedCurrency})</span>
             <TrendingUp className="h-5 w-5 text-sky-500" />
           </h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={analysis.revenue_model.revenue_forecast}>
+              <LineChart data={convertedRevenueForecast}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <YAxis 
+                  tick={{ fontSize: 11 }} 
+                  tickFormatter={(val) => {
+                    const sym = getSymbol();
+                    if (selectedCurrency === 'INR') {
+                      return val >= 10000000 ? `${sym}${(val/10000000).toFixed(1)}Cr` : (val >= 100000 ? `${sym}${(val/100000).toFixed(0)}L` : `${sym}${(val/1000).toFixed(0)}k`);
+                    }
+                    return val >= 1000000 ? `${sym}${(val/1000000).toFixed(1)}M` : (val >= 1000 ? `${sym}${(val/1000).toFixed(0)}k` : `${sym}${val}`);
+                  }}
+                />
+                <Tooltip 
+                  formatter={(val) => [formatCurrency(val / (convert(1) || 1)), `Projected Revenue (${selectedCurrency})`]}
+                />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="revenue" name="Projected Revenue ($)" stroke="#0ea5e9" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="convertedRevenue" name={`Projected Revenue (${getSymbol()})`} stroke="#0ea5e9" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from backend.database.session import Base, engine
-from backend.api import auth, ideas, analysis, mentor, reports, admin, support, forecast, prediction
+from backend.api import auth, ideas, analysis, mentor, reports, admin, support, forecast, prediction, currency
 
 # Initialize DB tables on startup
 # This creates all tables in PostgreSQL (or SQLite fallback) on application boot.
@@ -46,6 +46,7 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(support.router, prefix="/api")
 app.include_router(forecast.router, prefix="/api")
 app.include_router(prediction.router, prefix="/api")
+app.include_router(currency.router, prefix="/api")
 
 @app.get("/")
 def read_root():

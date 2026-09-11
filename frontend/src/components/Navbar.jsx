@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { Sun, Moon, Briefcase, RefreshCw } from 'lucide-react';
+import { useCurrency, SUPPORTED_CURRENCIES } from '../context/CurrencyContext';
+import { Sun, Moon, Briefcase, RefreshCw, Coins } from 'lucide-react';
 
 export const Navbar = () => {
   const { theme, toggleTheme, user } = useAuth();
+  const { selectedCurrency, setCurrency } = useCurrency();
   const [ideas, setIdeas] = useState([]);
   const [selectedIdeaId, setSelectedIdeaId] = useState('');
 
@@ -21,7 +23,12 @@ export const Navbar = () => {
         } else {
           setSelectedIdeaId(res.data[0].id.toString());
           localStorage.setItem('activeIdeaId', res.data[0].id.toString());
+          window.dispatchEvent(new Event('activeIdeaChanged'));
         }
+      } else {
+        setSelectedIdeaId('');
+        localStorage.removeItem('activeIdeaId');
+        window.dispatchEvent(new Event('activeIdeaChanged'));
       }
     } catch (err) {
       console.error("Failed to fetch ideas for switcher", err);
@@ -75,7 +82,24 @@ export const Navbar = () => {
       </div>
 
       {/* Utilities */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4">
+        {/* Global Currency Selector */}
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1">
+          <Coins className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+          <select
+            value={selectedCurrency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            title="Select Global Display Currency"
+          >
+            {Object.values(SUPPORTED_CURRENCIES).map((c) => (
+              <option key={c.code} value={c.code} className="dark:bg-slate-900 dark:text-slate-100">
+                {c.flag} {c.code} ({c.symbol})
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Theme Toggler */}
         <button
           onClick={toggleTheme}

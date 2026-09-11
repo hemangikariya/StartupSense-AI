@@ -22,9 +22,12 @@ class ReportResponse(BaseModel):
     class Config:
         from_attributes = True
 
+from backend.services.currency_service import get_exchange_rates
+
 @router.post("/generate/{idea_id}", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
 def generate_report(
     idea_id: int,
+    currency: str = "USD",
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_utils.get_current_user)
 ):
@@ -44,8 +47,13 @@ def generate_report(
     # PDF Path configuration
     static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", "reports")
     os.makedirs(static_dir, exist_ok=True)
-    pdf_filename = f"report_{idea_id}_{int(datetime.utcnow().timestamp())}.pdf"
+    pdf_filename = f"report_{idea_id}_{currency.upper()}_{int(datetime.utcnow().timestamp())}.pdf"
     pdf_path = os.path.join(static_dir, pdf_filename)
+
+    # Get rate for reporting currency
+    rates_info = get_exchange_rates()
+    rate = rates_info.get("rates", {}).get(currency.upper(), 1.0)
+    rate_date = datetime.fromtimestamp(rates_info.get("timestamp", datetime.utcnow().timestamp())).strftime("%Y-%m-%d")
 
     # Call pdf_service
     try:
@@ -60,7 +68,11 @@ def generate_report(
             },
             swot_data=analysis.swot_analysis,
             competitors=analysis.competitor_analysis.get("competitors", []),
-            tech_stack=analysis.tech_stack
+            tech_stack=analysis.tech_stack,
+            revenue_model=analysis.revenue_model,
+            currency=currency.upper(),
+            exchange_rate=rate,
+            rate_date=rate_date
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")

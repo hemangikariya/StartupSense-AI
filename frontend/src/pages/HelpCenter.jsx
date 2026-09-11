@@ -7,7 +7,7 @@ export const HelpCenter = () => {
   const [tickets, setTickets] = useState([]);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -36,7 +36,7 @@ export const HelpCenter = () => {
     try {
       await axios.post(`${API_URL}/support/tickets`, {
         subject,
-        description,
+        message: description,
         priority: 'Medium'
       });
       setSubject('');
@@ -68,7 +68,7 @@ export const HelpCenter = () => {
           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
             <MessageSquarePlus className="h-4.5 w-4.5 text-sky-500" /> Open New Ticket
           </h3>
-          
+
           {success && (
             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 shrink-0" />
@@ -122,17 +122,16 @@ export const HelpCenter = () => {
                 <div key={t.id} className="py-4 first:pt-0 last:pb-0">
                   <div className="flex justify-between items-start">
                     <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">{t.subject}</h4>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                      t.status === 'open' 
-                        ? 'bg-sky-500/10 text-sky-500' 
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${t.status === 'open'
+                        ? 'bg-sky-500/10 text-sky-500'
                         : t.status === 'pending'
                           ? 'bg-amber-500/10 text-amber-500'
                           : 'bg-slate-500/10 text-slate-400'
-                    }`}>
+                      }`}>
                       {t.status}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">{t.description}</p>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">{t.message}</p>
                   <p className="text-[10px] text-slate-400 mt-2">ID: #{t.id} • {new Date(t.created_at).toLocaleString()}</p>
                 </div>
               ))}

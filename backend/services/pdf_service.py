@@ -1,10 +1,34 @@
 import os
+from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+def format_pdf_currency(amount_usd: float, currency: str = "USD", rate: float = 1.0) -> str:
+    """Formats monetary amounts into target currency with symbols for PDF reports."""
+    symbol_map = {
+        "USD": "$", "INR": "Rs. ", "EUR": "EUR ", "GBP": "GBP ",
+        "AED": "AED ", "CAD": "C$ ", "AUD": "A$ ", "SGD": "S$ ", "JPY": "JPY "
+    }
+    symbol = symbol_map.get(currency.upper(), f"{currency} ")
+    converted = amount_usd * rate
+    
+    if currency.upper() == "INR":
+        if converted >= 10000000:
+            return f"Rs. {converted / 10000000:.2f} Cr"
+        elif converted >= 100000:
+            return f"Rs. {converted / 100000:.2f} Lakh"
+        else:
+            return f"Rs. {converted:,.0f}"
+    elif converted >= 1000000:
+        return f"{symbol}{converted / 1000000:.2f}M"
+    elif converted >= 1000:
+        return f"{symbol}{converted / 1000:.1f}k"
+    else:
+        return f"{symbol}{converted:,.0f}"
 
 def generate_startup_pdf(
     output_path: str,
@@ -12,13 +36,16 @@ def generate_startup_pdf(
     summary_data: Dict[str, Any],
     swot_data: Dict[str, Any],
     competitors: list,
-    tech_stack: Dict[str, Any]
+    tech_stack: Dict[str, Any],
+    revenue_model: Dict[str, Any] = None,
+    currency: str = "USD",
+    exchange_rate: float = 1.0,
+    rate_date: str = None
 ) -> str:
     """
     Generates a highly styled, corporate-grade PDF analysis report for a startup.
-    Uses ReportLab flowables to ensure compatibility and dynamic size adjustments.
+    Includes verified competitors, SWOT, technology stack, financial forecasts, and global currency metadata.
     """
-    # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     doc = SimpleDocTemplate(
@@ -43,10 +70,9 @@ def generate_startup_pdf(
         'CoverTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=32,
-        leading=38,
+        fontSize=30,
+        leading=36,
         textColor=primary_color,
-        alignment=0, # Left
         spaceAfter=15
     )
     
@@ -54,21 +80,21 @@ def generate_startup_pdf(
         'CoverSubtitle',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=14,
-        leading=18,
+        fontSize=13,
+        leading=17,
         textColor=secondary_color,
-        spaceAfter=30
+        spaceAfter=25
     )
     
     h1_style = ParagraphStyle(
         'Header1',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=18,
-        leading=22,
+        fontSize=16,
+        leading=20,
         textColor=primary_color,
-        spaceBefore=15,
-        spaceAfter=10,
+        spaceBefore=14,
+        spaceAfter=8,
         keepWithNext=True
     )
     
@@ -76,18 +102,18 @@ def generate_startup_pdf(
         'ReportBody',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=10.5,
-        leading=15,
+        fontSize=9.5,
+        leading=14,
         textColor=text_color,
-        spaceAfter=10
+        spaceAfter=8
     )
     
     th_style = ParagraphStyle(
         'TableHeader',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=10,
-        leading=12,
+        fontSize=9,
+        leading=11,
         textColor=colors.white
     )
     
@@ -95,66 +121,67 @@ def generate_startup_pdf(
         'TableCell',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=9,
-        leading=12,
+        fontSize=8.5,
+        leading=11,
         textColor=text_color
     )
     
     story = []
     
     # ------------------ COVER PAGE ------------------
-    story.append(Spacer(1, 1.5 * inch))
-    # Elegant Top Bar
+    story.append(Spacer(1, 1.2 * inch))
     story.append(Table(
         [[Paragraph("", body_style)]],
         colWidths=[7 * inch],
         rowHeights=[4],
-        style=TableStyle([
-            ('BACKGROUND', (0,0), (-1,-1), secondary_color),
-        ])
+        style=TableStyle([('BACKGROUND', (0,0), (-1,-1), secondary_color)])
     ))
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 15))
     story.append(Paragraph(title.upper(), title_style))
     story.append(Paragraph("AI-POWERED VALIDATION & MARKET INTELLIGENCE REPORT", subtitle_style))
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 15))
     
+    rate_str = f"1 USD = {exchange_rate:.2f} {currency}" if currency != "USD" else "USD Base"
+    date_str = rate_date or datetime.utcnow().strftime("%Y-%m-%d")
+
     meta_data = [
         [Paragraph("<b>Prepared For:</b> Investor & Founder Review", body_style)],
         [Paragraph("<b>Generated By:</b> StartupSense AI SaaS Platform", body_style)],
+        [Paragraph(f"<b>Financial Reporting Currency:</b> {currency} ({rate_str})", body_style)],
+        [Paragraph(f"<b>Report Timestamp:</b> {date_str}", body_style)],
         [Paragraph("<b>Security Classification:</b> Private & Confidential", body_style)],
     ]
-    meta_table = Table(meta_data, colWidths=[5 * inch])
+    meta_table = Table(meta_data, colWidths=[5.5 * inch])
     meta_table.setStyle(TableStyle([
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(meta_table)
     
-    story.append(Spacer(1, 2 * inch))
+    story.append(Spacer(1, 1.5 * inch))
     story.append(Paragraph("<i>This report contains predictive machine learning insights, live competitive analyses, and strategic recommendations generated based on current market dynamics.</i>", body_style))
     story.append(PageBreak())
     
     # ------------------ SECTION 1: EXECUTIVE SUMMARY ------------------
     story.append(Paragraph("1. Executive Summary", h1_style))
     story.append(Paragraph(summary_data.get("summary", ""), body_style))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 8))
     
     story.append(Paragraph("<b>Core Problem Statement:</b>", body_style))
     story.append(Paragraph(summary_data.get("problem_statement", ""), body_style))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 8))
     
     story.append(Paragraph("<b>Proposed Solution:</b>", body_style))
     story.append(Paragraph(summary_data.get("solution", ""), body_style))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 8))
     
     story.append(Paragraph("<b>Target Customer Audience:</b>", body_style))
     story.append(Paragraph(summary_data.get("target_audience", ""), body_style))
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 15))
     
     # ------------------ SECTION 2: SWOT ANALYSIS ------------------
     story.append(Paragraph("2. Strategic SWOT Analysis", h1_style))
     
-    # Make a clean 2x2 SWOT grid table
     swot_table_data = [
         [
             Paragraph("<b>STRENGTHS</b><br/>" + "<br/>".join([f"• {s}" for s in swot_data.get("strengths", [])]), td_style),
@@ -169,49 +196,93 @@ def generate_startup_pdf(
     swot_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 1, border_color),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('TOPPADDING', (0,0), (-1,-1), 12),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
-        ('LEFTPADDING', (0,0), (-1,-1), 12),
-        ('RIGHTPADDING', (0,0), (-1,-1), 12),
-        ('BACKGROUND', (0,0), (0,0), colors.HexColor("#f0fdf4")),  # light green
-        ('BACKGROUND', (1,0), (1,0), colors.HexColor("#fef2f2")),  # light red
-        ('BACKGROUND', (0,1), (0,1), colors.HexColor("#f0f9ff")),  # light blue
-        ('BACKGROUND', (1,1), (1,1), colors.HexColor("#fffbeb")),  # light amber
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+        ('BACKGROUND', (0,0), (0,0), colors.HexColor("#f0fdf4")),
+        ('BACKGROUND', (1,0), (1,0), colors.HexColor("#fef2f2")),
+        ('BACKGROUND', (0,1), (0,1), colors.HexColor("#f0f9ff")),
+        ('BACKGROUND', (1,1), (1,1), colors.HexColor("#fffbeb")),
     ]))
     story.append(swot_table)
     story.append(PageBreak())
     
     # ------------------ SECTION 3: COMPETITIVE LANDSCAPE ------------------
-    story.append(Paragraph("3. Competitor Analysis", h1_style))
-    story.append(Paragraph("Real-time competitor metrics tracked through active intelligence search:", body_style))
-    story.append(Spacer(1, 10))
+    story.append(Paragraph("3. Real-Time Competitor Analysis", h1_style))
+    story.append(Paragraph("Verified market competitors identified through live search intelligence:", body_style))
+    story.append(Spacer(1, 8))
     
-    comp_headers = [Paragraph("Competitor Name", th_style), Paragraph("Similarity", th_style), Paragraph("Core Moat/Strengths", th_style), Paragraph("Market Share", th_style)]
-    comp_rows = [comp_headers]
-    for comp in competitors:
-        comp_rows.append([
-            Paragraph(comp.get("name", ""), td_style),
-            Paragraph(f"{comp.get('similarity_score', 0)}%", td_style),
-            Paragraph(", ".join(comp.get("strengths", [])), td_style),
-            Paragraph(comp.get("market_share", "Emerging"), td_style)
-        ])
+    if competitors:
+        comp_headers = [
+            Paragraph("Competitor", th_style),
+            Paragraph("Type", th_style),
+            Paragraph("Similarity", th_style),
+            Paragraph("Core Moat / Strengths", th_style),
+            Paragraph("Status", th_style)
+        ]
+        comp_rows = [comp_headers]
+        for comp in competitors:
+            domain_txt = f"<br/><font color='#64748b' size=7>{comp.get('domain','')}</font>" if comp.get('domain') else ""
+            status_txt = "Verified" if comp.get("is_verified", True) else "AI Insight"
+            comp_rows.append([
+                Paragraph(f"<b>{comp.get('name', '')}</b>{domain_txt}", td_style),
+                Paragraph(comp.get("competitor_type", "Direct"), td_style),
+                Paragraph(f"{comp.get('similarity_score', 70)}%", td_style),
+                Paragraph(", ".join(comp.get("strengths", [])[:2]), td_style),
+                Paragraph(status_txt, td_style)
+            ])
+            
+        comp_table = Table(comp_rows, colWidths=[1.8 * inch, 0.9 * inch, 0.8 * inch, 2.6 * inch, 0.9 * inch])
+        comp_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), primary_color),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 7),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+            ('GRID', (0,0), (-1,-1), 0.5, border_color),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#f8fafc")]),
+        ]))
+        story.append(comp_table)
+    else:
+        story.append(Paragraph("<i>No verified competitors found from available market sources.</i>", body_style))
         
-    comp_table = Table(comp_rows, colWidths=[1.8 * inch, 1.0 * inch, 3.0 * inch, 1.2 * inch])
-    comp_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), primary_color),
-        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 8),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-        ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#f8fafc")]),
-    ]))
-    story.append(comp_table)
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 15))
     
-    # ------------------ SECTION 4: TECH STACK ------------------
-    story.append(Paragraph("4. Recommended Technical Architecture", h1_style))
-    
+    # ------------------ SECTION 4: FINANCIAL FORECAST & REVENUE ------------------
+    if revenue_model and "revenue_forecast" in revenue_model:
+        story.append(Paragraph(f"4. Financial Forecast ({currency})", h1_style))
+        story.append(Paragraph(f"Projected 12-month run-rate converted into {currency} using current exchange rates:", body_style))
+        story.append(Spacer(1, 6))
+
+        forecast_list = revenue_model.get("revenue_forecast", [])
+        if forecast_list:
+            fin_headers = [Paragraph("Month", th_style), Paragraph("Projected Revenue", th_style), Paragraph("Lower Bound", th_style), Paragraph("Upper Bound", th_style)]
+            fin_rows = [fin_headers]
+            for row in forecast_list[:12]:
+                rev_fmt = format_pdf_currency(row.get("revenue", 0), currency, exchange_rate)
+                low_fmt = format_pdf_currency(row.get("lower_bound", 0), currency, exchange_rate)
+                up_fmt = format_pdf_currency(row.get("upper_bound", 0), currency, exchange_rate)
+                fin_rows.append([
+                    Paragraph(row.get("month", ""), td_style),
+                    Paragraph(rev_fmt, td_style),
+                    Paragraph(low_fmt, td_style),
+                    Paragraph(up_fmt, td_style),
+                ])
+            fin_table = Table(fin_rows, colWidths=[1.5 * inch, 1.8 * inch, 1.8 * inch, 1.9 * inch])
+            fin_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), primary_color),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('TOPPADDING', (0,0), (-1,-1), 5),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+                ('GRID', (0,0), (-1,-1), 0.5, border_color),
+                ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#f8fafc")]),
+            ]))
+            story.append(fin_table)
+            story.append(Spacer(1, 15))
+
+    # ------------------ SECTION 5: TECH STACK ------------------
+    story.append(Paragraph("5. Recommended Technical Architecture", h1_style))
     tech_data = [
         [Paragraph("<b>Frontend Framework:</b>", td_style), Paragraph(tech_stack.get("frontend", "React 19, TypeScript, Tailwind CSS"), td_style)],
         [Paragraph("<b>Backend Engine:</b>", td_style), Paragraph(tech_stack.get("backend", "FastAPI (Python), Uvicorn"), td_style)],

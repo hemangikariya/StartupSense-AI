@@ -5,8 +5,11 @@ import { useActiveAnalysis } from '../hooks/useActiveAnalysis';
 import { EmptyState } from '../components/EmptyState';
 import { Download, FileText, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 
+import { useCurrency } from '../context/CurrencyContext';
+
 export const ReportsCenter = () => {
   const { analysis, loading: analysisLoading, error, activeIdeaId, reload } = useActiveAnalysis();
+  const { selectedCurrency } = useCurrency();
   
   const [reports, setReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
@@ -38,7 +41,7 @@ export const ReportsCenter = () => {
     setGenerating(true);
     setGenError('');
     try {
-      await axios.post(`${API_URL}/reports/generate/${activeIdeaId}`);
+      await axios.post(`${API_URL}/reports/generate/${activeIdeaId}?currency=${selectedCurrency}`);
       fetchReports();
     } catch (err) {
       setGenError(err.response?.data?.detail || 'Report generation failed.');
